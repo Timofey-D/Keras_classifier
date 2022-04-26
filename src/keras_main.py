@@ -7,98 +7,87 @@ import utility as util
 from preprocessing import Preprocessing as Prep
 
 
-def data_info(TR, TS, TRL, TSL):
+def data_info(train, test, train_l, test_l):
     print("INFORMATION BY DATASET")
 
-    print('Training data:', TR.shape, TRL.shape)
-    print('Testing data:', TS.shape, TSL.shape)
+    print('Training data:', train.shape, train_l.shape)
+    print('Testing data:', test.shape, test_l.shape)
     
-    len_labels = len(np.unique(TRL))
+    np_labels = np.unique(train_l)
+    len_labels = len(np_labels)
 
-    print('Labels:', np.unique(TRL))
+    print('Labels:', np_labels)
     print('Total labels:', len_labels)
 
 
-def run_config(NN, config, train, CTRL, test, CTSL, l_value=0.01, dropout=0.5, batch_size=256):
-    if config == 1:
-        NN.configuration()
-    elif config == 2:
-        NN.set_L1(l_value)
-        NN.configuration_L1()
-        print("With regularization L1 = {}".format(NN.get_L1()))
-    elif config == 3:
-        NN.set_L2(l_value)
-        NN.configuration_L2()
-        print("With regularization L2 = {}".format(NN.get_L2()))
-    elif config == 4:
-        NN.configuration_dropout()
-        NN.set_dropout(dropout)
-        print("With dropout dropout = {}".format(NN.get_dropout()))
-    elif config == 5:
-        NN.configuration_L2_dropout()
-        NN.set_dropout(dropout)
-        NN.set_L2(l_value)
-        print("With dropout and regularization L2 = {}, dropout = {}".format(NN.get_L2(), NN.get_dropout()))
-
+def compile_and_train(NN, train, train_l, valid, valid_l):
     NN.compilation()
-    NN.train(train, CTRL, test, CTSL, iteration=50, batch=batch_size)
-    NN.print_evaluate(test, CTSL)
+    NN.train(train, train_l, valid, valid_l, batch=256, iteration=50, verb=0)
+
+
+def prepare_dataset(path):
+    dataset = Prep(path)
+    dataset.get_normalized_data()
+    dataset.reshape_data()
+    return dataset
 
 
 def main():
     path_to_dataset = util.get_path(sys.argv)
-
-    print(path_to_dataset)
-
-    dataset = Prep(path_to_dataset)
-    dataset.get_normalized_data()
-    dataset.reshape_data()
+    dataset = prepare_dataset(path_to_dataset)
     data = dataset.get_data()
     labels = dataset.get_labels()
 
-    (TR, VAT, TRL, VATL) = dataset.split_data(data, labels, size_of_test=0.2, rand_state=None)
-    (V, TS, VL, TSL) = dataset.split_data(VAT, VATL, size_of_test=0.5, rand_state=None)
+    (train, test, train_l, test_l) = dataset.split_data(data, labels, size_of_test=0.2, rand_state=None)
+    (valid, tst, valid_l, tst_l) = dataset.split_data(test, test_l, size_of_test=0.5, rand_state=None)
 
-    data_info(
-            TR, VAT,
-            TRL, VL
-    )
+    print()
+    data_info(train, test, train_l, test_l)
+    print()
+    data_info(valid, tst, valid_l, tst_l)
+    print()
 
-    ## Change each value of the array to float
-    TR = TR.astype('float32')
-    V = V.astype('float32')
+    # Change each value of the array to float
+    train = train.astype('float32')
+    valid = valid.astype('float32')
 
     # Change the labels from integer to categorical data
-    CTRL = to_categorical(TRL)
-    CVL = to_categorical(VL)
+    cat_train_l = to_categorical(train_l)
+    cat_valid_l = to_categorical(valid_l)
 
-    NN = Keras()
+    configurations = [
+            { 'config' : 1},
+            { 'config' : 2, 'L1' : 0.01},
+            { 'config' : 2, 'L1' : 0.001},
+            { 'config' : 3, 'L2' : 0.01},
+            { 'config' : 3, 'L2' : 0.001},
+            { 'config' : 4, 'dropout' : 0.5},
+            { 'config' : 5, 'L2' : 0.01, 'dropout' : 0.5},
+            { 'config' : 5, 'L2' : 0.001, 'dropout' : 0.5}
+    ]
 
-    configurations = [1, 2, 3, 4, 5]
+    for config in configurations:
+        NN = Keras(
+                config=config['config'],
+                L1=config['L1'] if list(config.keys()).count('L1') != 0 else 0.0,
+                L2=config['L2'] if list(config.keys()).count('L2') != 0 else 0.0,
+                dropout=config['dropout'] if list(config.keys()).count('dropout') != 0 else 0.0,
+                verbose=1
+        )
 
-    run_config(NN, 1, TR, CTRL, V, CVL)
+        compile_and_train(NN, train, cat_train_l, valid, cat_valid_l)
+        NN.print_evaluate(valid, cat_valid_l)
+        NN.model_info()
 
-    NN.predict(V)
-    conf_matrix = NN.get_confusion_matrix(CVL)
-    print(conf_matrix)
+        NN.predict(valid)
+        report = NN.get_report(cat_valid_l)
+        print(report)
 
-    report = NN.get_report(CVL)
-    print(report)
+        confusion_matrix = NN.get_confusion_matrix(cat_valid_l)
+        print(confusion_matrix)
+        print()
 
-
-    #for config in configurations:
-
-    #    print("Configuration {}:".format(config))
-
-    #    if config == 2 or config == 3 or config == 5:
-    #        lambdas = [0.01, 0.001]
-    #        for l_value in lambdas:
-    #            run_config(config, TR, CTRL, V, CVL, l_value, 0.5)
-    #    else:
-    #        run_config(config, TR, CTRL, V, CVL)
-
-    #    conf_matrix = NN.get_confusion_matrix(test, CTSL)
-    #    print(conf_matrix)
 
 if __name__ == '__main__':
     main()
+
