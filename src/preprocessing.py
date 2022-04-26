@@ -87,12 +87,18 @@ class Preprocessing:
 
     # To get a normalized data
     def get_normalized_data(self, h=32, w=32):
-        data = []
+        self.un_data = []
         
         for path in self.raw_data:
             raw_image = self.open_image(path)
             image = self.__normalize_image__(raw_image, h, w)
             image = 255 - image
-            data.append(image)
+            self.un_data.append(image)
 
-        self.data = np.array(data)
+        self.data = np.array(self.un_data)
+
+    
+    def print_undata(self):
+        for image in self.un_data:
+            self.print_image(image)
+
