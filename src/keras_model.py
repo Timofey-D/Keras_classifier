@@ -20,7 +20,7 @@ class Keras:
         match config:
             case 1:       
                 if verbose == 1:
-                    print("Configuration {}: without regularizers".format(config))
+                    print("Configuration {}: without regularization".format(config))
                 self.configuration()
             case 2:
                 if verbose == 1:
@@ -109,7 +109,7 @@ class Keras:
     def set_dropout(self, value):
         self.dropout = value
 
-    def print_evaluate(self, data, labels):
+    def get_evaluate(self, data, labels):
         [loss, accuracy] = self.NN.evaluate(data, labels)
         print("Evaluation result on Test Data : Loss = {}, accuracy = {:.2%}".format(loss, accuracy))
 
@@ -129,9 +129,9 @@ class Keras:
     def get_dropout(self):
         return self.dropout
 
-    def get_evaluate(self):
+    def get_evaluate(self, data, labels):
         evaluate = self.NN.evaluate(data, labels)
-        return evalute
+        return evaluate
 
     def get_report(self, labels):
         report = classification_report(labels.argmax(axis=1), self.prediction.argmax(axis=1))
