@@ -1,10 +1,14 @@
 import sys
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+
+import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 from keras_model import Keras
 from tensorflow.keras.utils import to_categorical
 import utility as util
-from preprocessing import Preprocessing as Prep
+from preprocessing import Preprocessing
 
 
 def data_info(train, test, train_l, test_l):
@@ -26,12 +30,112 @@ def compile_and_train(NN, train, train_l, valid, valid_l):
 
 
 def prepare_dataset(path):
-    dataset = Prep(path)
+    dataset = Preprocessing(path)
     dataset.get_normalized_data()
     dataset.reshape_data()
     return dataset
 
 
+def greeting_message():
+    print("The program includes 5 configurations that reflects different settings the Keras model.")
+    print("The Keras model has the similar structure in all configurations.")
+    print("The differences are only in additional regularization parameters.")
+    print()
+
+    print("The 1 configuration does not include any regularization parameters.")
+    print("The 2 configuration includes L1 regularization parameter.")
+    print("The 3 configuration includes L2 regularization parameter.")
+    print("The 4 configuration includes dropout regularization parameter.")
+    print("The 5 configuration includes L2 and dropout regularization parameters.")
+    print()
+
+    print("It is necessary to choose a configuration of the model.")
+    print()
+
+
+def choose_configuration():
+    L1 = 0.01
+    L2 = 0.01
+    configuration = int(input("Configuration [1, 2, 3, 4, 5]: "))
+    if configuration == 2:
+        L1 = float(input("it needs to choose the L1 value? [0.01, 0.001]: "))
+    if configuration == 3:
+        L2 = float(input("it needs to choose the L2 value? [0.01, 0.001]: "))
+    if configuration == 5:
+        L2 = float(input("it needs to choose the L2 value? [0.01, 0.001]: "))
+
+    print()
+    return (configuration, L1, L2)
+
+
+def run_neuralnetwork(config, train, valid, cat_train_l, cat_valid_l, L1=0.01, L2=0.01):
+    NN = Keras(config, L1=L1, L2=L2, dropout=0.5, verbose=1)
+    compile_and_train(NN, train, cat_train_l, valid, cat_valid_l)
+    return NN
+
+
+def prepare_report_files(config=0, evaluate=None, report=None, conf_matrix=None, L1 = None, L2 = None):
+
+    curr_dir = os.getcwd()
+    output_path = os.path.join(curr_dir, "Outputs")
+    
+    if not os.path.exists(output_path):
+        os.mkdir(output_path)
+    
+    if os.path.exists(output_path):
+        os.chdir(output_path)
+
+    curr_dir = os.getcwd()
+
+    config_path = os.path.join(curr_dir, "Congiguration_" + str(config))
+    if not os.path.exists(config_path) and config != 0:
+        os.mkdir(config_path)
+        
+    if os.path.exists(config_path):
+        os.chdir(config_path)
+
+    file_1 = 'result.txt'
+
+    configuration = ''
+
+    match config:
+        case 1:
+            configuration = "Configuration {}: without regularization".format(config)
+        case 2:
+            configuration = "Configuration {}: with regularizer L1 = {}".format(config, L1)
+        case 3:
+            configuration = "Configuration {}: with regularizer L2 = {}".format(config, L2)
+        case 4:
+            configuration = "Configuration {}: with regularizer dropout = {}".format(config, 0.5)
+        case 5:
+            configuration = "Configuration {}: with regularizer L2 = {} and dropout = {}".format(config, L2, 0.5)
+
+    with open(file_1, 'w') as result:
+        result.write(configuration + '\n' + '\n')
+
+        if evaluate != None:
+            result.write('Accuracy = {:.2%}\n'.format(evaluate[1]))
+            result.write('Loss = {:.4f}\n\n'.format(evaluate[0]))
+
+
+        if report != None:
+            result.write(report)
+
+    if conf_matrix.any():
+        df = pd.DataFrame(conf_matrix)
+        df.to_csv('confusion_matrix')
+
+
+def print_evaluate(train, value='loss'):
+    plt.figure(figsize=[8,6])
+    plt.plot(train.history[value],'r',linewidth=3.0)
+    plt.plot(train.history['val_loss'],'b',linewidth=3.0)
+    plt.legend(['Training loss', 'Validation Loss'],fontsize=18)
+    plt.xlabel('Epochs ',fontsize=16)
+    plt.ylabel('Loss',fontsize=16)
+    plt.title('Loss Curves',fontsize=16)
+
+    
 def main():
     path_to_dataset = util.get_path(sys.argv)
     dataset = prepare_dataset(path_to_dataset)
@@ -50,42 +154,30 @@ def main():
     # Change each value of the array to float
     train = train.astype('float32')
     valid = valid.astype('float32')
+    tst = tst.astype('float32')
 
     # Change the labels from integer to categorical data
     cat_train_l = to_categorical(train_l)
     cat_valid_l = to_categorical(valid_l)
+    cat_tst_l = to_categorical(tst_l)
 
-    configurations = [
-            { 'config' : 1},
-            { 'config' : 2, 'L1' : 0.01},
-            { 'config' : 2, 'L1' : 0.001},
-            { 'config' : 3, 'L2' : 0.01},
-            { 'config' : 3, 'L2' : 0.001},
-            { 'config' : 4, 'dropout' : 0.5},
-            { 'config' : 5, 'L2' : 0.01, 'dropout' : 0.5},
-            { 'config' : 5, 'L2' : 0.001, 'dropout' : 0.5}
-    ]
+    greeting_message()
+    (config, L1, L2) = choose_configuration()
 
-    for config in configurations:
-        NN = Keras(
-                config=config['config'],
-                L1=config['L1'] if list(config.keys()).count('L1') != 0 else 0.0,
-                L2=config['L2'] if list(config.keys()).count('L2') != 0 else 0.0,
-                dropout=config['dropout'] if list(config.keys()).count('dropout') != 0 else 0.0,
-                verbose=1
-        )
+    NN = run_neuralnetwork(config, train, valid, cat_train_l, cat_valid_l, L1, L2)
+    evaluate = NN.get_evaluate(valid, cat_valid_l)
 
-        compile_and_train(NN, train, cat_train_l, valid, cat_valid_l)
-        NN.print_evaluate(valid, cat_valid_l)
-        NN.model_info()
+    print_evaluate(NN.get_train(), 'loss')
+    print_evaluate(NN.get_train(), 'accuracy')
 
-        NN.predict(valid)
-        report = NN.get_report(cat_valid_l)
-        print(report)
+    #NN.model_info()
+    
+    NN.predict(valid)
+    report = NN.get_report(cat_valid_l)
 
-        confusion_matrix = NN.get_confusion_matrix(cat_valid_l)
-        print(confusion_matrix)
-        print()
+    confusion_matrix = NN.get_confusion_matrix(cat_valid_l)
+
+    #prepare_report_files(config, evaluate, report, confusion_matrix, L1, L2)
 
 
 if __name__ == '__main__':
