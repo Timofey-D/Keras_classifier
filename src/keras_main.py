@@ -2,6 +2,8 @@ import sys
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
+
+import matplotlib
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
@@ -56,14 +58,17 @@ def greeting_message():
 def choose_configuration():
     L1 = 0.01
     L2 = 0.01
-    configuration = int(input("Configuration [1, 2, 3, 4, 5]: "))
+    configuration = int(input("Configuration [1, 2, 3, 4, 5, 6 (final model)]: "))
     if configuration == 2:
         L1 = float(input("it needs to choose the L1 value? [0.01, 0.001]: "))
     if configuration == 3:
         L2 = float(input("it needs to choose the L2 value? [0.01, 0.001]: "))
     if configuration == 5:
         L2 = float(input("it needs to choose the L2 value? [0.01, 0.001]: "))
-
+    if configuration == 6:
+        L2 = 0.001
+        print("\nSince you\'ve chosen the final model. Could you allow me to explain what it means.")
+        print("The final model reflets the most accuracy and the smallest loss based on passed dataset.\n")
     print()
     return (configuration, L1, L2)
 
@@ -78,7 +83,7 @@ def prepare_report_files(config=0, evaluate=None, report=None, conf_matrix=None,
 
     curr_dir = os.getcwd()
     output_path = os.path.join(curr_dir, "Outputs")
-    
+
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     
@@ -87,7 +92,7 @@ def prepare_report_files(config=0, evaluate=None, report=None, conf_matrix=None,
 
     curr_dir = os.getcwd()
 
-    config_path = os.path.join(curr_dir, "Congiguration_" + str(config))
+    config_path = os.path.join(curr_dir, "Congiguration_" + (str(config)) if config != 6 else "Final_configuration")
     if not os.path.exists(config_path) and config != 0:
         os.mkdir(config_path)
         
@@ -109,6 +114,8 @@ def prepare_report_files(config=0, evaluate=None, report=None, conf_matrix=None,
             configuration = "Configuration {}: with regularizer dropout = {}".format(config, 0.5)
         case 5:
             configuration = "Configuration {}: with regularizer L2 = {} and dropout = {}".format(config, L2, 0.5)
+        case 6:
+            configuration = "Final configuration: with regularizer L2 = {} and dropout = {}".format(L2, 0.5)
 
     with open(file_1, 'w') as result:
         result.write(configuration + '\n' + '\n')
@@ -127,14 +134,14 @@ def prepare_report_files(config=0, evaluate=None, report=None, conf_matrix=None,
 
 
 def print_evaluate(train, value='loss'):
-    plt.figure(figsize=[8,6])
-    plt.plot(train.history[value],'r',linewidth=3.0)
-    plt.plot(train.history['val_loss'],'b',linewidth=3.0)
-    plt.legend(['Training loss', 'Validation Loss'],fontsize=18)
-    plt.xlabel('Epochs ',fontsize=16)
-    plt.ylabel('Loss',fontsize=16)
-    plt.title('Loss Curves',fontsize=16)
-
+    plt.plot(train.history['accuracy'])
+    plt.plot(train.history['val_accuracy'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.show()
+ 
     
 def main():
     path_to_dataset = util.get_path(sys.argv)
@@ -164,11 +171,22 @@ def main():
     greeting_message()
     (config, L1, L2) = choose_configuration()
 
-    NN = run_neuralnetwork(config, train, valid, cat_train_l, cat_valid_l, L1, L2)
-    evaluate = NN.get_evaluate(valid, cat_valid_l)
+    NN = None
+    if config != 6:
+        NN = run_neuralnetwork(config, train, valid, cat_train_l, cat_valid_l, L1, L2)
+    else:
+        NN = run_neuralnetwork(5, train, tst, cat_train_l, cat_tst_l, L1, L2)
 
-    print_evaluate(NN.get_train(), 'loss')
-    print_evaluate(NN.get_train(), 'accuracy')
+    evaluate = None
+    if config != 6:
+        evaluate = NN.get_evaluate(valid, cat_valid_l)
+    else:
+        evaluate = NN.get_evaluate(tst, cat_tst_l)
+
+    train = NN.get_train()
+
+    print_evaluate(train, 'loss')
+    print_evaluate(train, 'accuracy')
 
     #NN.model_info()
     
@@ -177,7 +195,7 @@ def main():
 
     confusion_matrix = NN.get_confusion_matrix(cat_valid_l)
 
-    #prepare_report_files(config, evaluate, report, confusion_matrix, L1, L2)
+    prepare_report_files(config, evaluate, report, confusion_matrix, L1, L2)
 
 
 if __name__ == '__main__':
