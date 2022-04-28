@@ -6,10 +6,10 @@ OSX=''
 
 case "$OSTYPE" in
     solaris*) echo "THere is not a command for Solaris" ;;
-    darwin*)  python3 src/keras_main.py hhd_dataset ;;
-    linux*)   python3 src/keras_main.py hhd_dataset ;;
+    darwin*)  python3 src/nn_clasifier.py hhd_dataset ;;
+    linux*)   python3 src/nn_clasifier.py hhd_dataset ;;
     bsd*)     echo "There is not information for BSD" ;;
-    msys*)    python3 src\\keras_main.py hhd_dataset ;;
+    msys*)    python3 src\\nn_clasifier.py hhd_dataset ;;
     cygwin*)  echo "There is not information for CYGWIN" ;;
     *)        echo "The OS does not exist!" ;;
 esac
