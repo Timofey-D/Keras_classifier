@@ -178,7 +178,7 @@ def main():
     else:
         NN = run_neuralnetwork(5, train, tst, cat_train_l, cat_tst_l, L1, L2)
 
-    evaluate = None
+    evaluate = []
     if config != 6:
         evaluate = NN.get_evaluate(valid, cat_valid_l)
     else:
@@ -191,10 +191,10 @@ def main():
 
     #NN.model_info()
     
-    NN.predict(valid)
-    report = NN.get_report(cat_valid_l)
+    NN.predict(tst)
+    report = NN.get_report(cat_tst_l)
 
-    confusion_matrix = NN.get_confusion_matrix(cat_valid_l)
+    confusion_matrix = NN.get_confusion_matrix(cat_tst_l)
 
     prepare_report_files(config, evaluate, report, confusion_matrix, L1, L2)
 
