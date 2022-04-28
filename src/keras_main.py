@@ -69,6 +69,7 @@ def choose_configuration():
         L2 = 0.001
         print("\nSince you\'ve chosen the final model. Could you allow me to explain what it means.")
         print("The final model reflets the most accuracy and the smallest loss based on passed dataset.\n")
+        print("The final configuration based on 5 configuration that includes the droptout and L2 regularization parameters") 
     print()
     return (configuration, L1, L2)
 
