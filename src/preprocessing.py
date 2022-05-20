@@ -7,11 +7,26 @@ from sklearn.model_selection import train_test_split
 
 class Preprocessing:
 
-    def __init__(self, path):
+    def __init__(self, datadir, height=32, width=32):
 
-        self.dataset = load_files(path)
-        self.raw_data = self.dataset.filenames
+        self.__check_datadir__(datadir)
+        self.dataset = load_files(self.path)
+        self.filenames = self.dataset.filenames
         self.labels = np.array(self.dataset.target)
+        self.__normalized_data__(height, width)
+
+
+    def __check_datadir__(self, datadir):
+        path = None
+
+        try:
+            # To get a path to dataset
+            path = os.path.join(os.getcwd(), datadir)
+        except:
+            raise Exception("The directory does not exist or the command was entered wrong!")
+
+        self.path = path
+
 
     # To get a pad to image
     def __add_padding__(self, image):
@@ -41,11 +56,16 @@ class Preprocessing:
     def get_dataset(self):
         return self.dataset
 
+    
+    def get_normalized_images(self):
+        return self.normalized_images
+
+
     def get_data(self):
         return self.data
 
     def get_labels(self):
-        return np.array(self.labels)
+        return self.labels
 
     # To get a normalized image
     def __normalize_image__(self, image, height=32, width=32):
@@ -85,20 +105,16 @@ class Preprocessing:
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
+
     # To get a normalized data
-    def get_normalized_data(self, h=32, w=32):
-        self.un_data = []
+    def __normalized_data__(self, h=32, w=32):
+        self.normalized_images = []
         
-        for path in self.raw_data:
+        for path in self.filenames:
             raw_image = self.open_image(path)
             image = self.__normalize_image__(raw_image, h, w)
             image = 255 - image
-            self.un_data.append(image)
+            self.normalized_images.append(image)
 
-        self.data = np.array(self.un_data)
-
-    
-    def print_undata(self):
-        for image in self.un_data:
-            self.print_image(image)
+        self.data = np.array(self.normalized_images)
 
