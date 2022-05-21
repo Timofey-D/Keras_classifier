@@ -1,6 +1,8 @@
 from keras_model import Keras
 from preprocessing import Preprocessing
 
+import numpy as np
+
 
 class Mode:
 
@@ -44,8 +46,43 @@ class Mode:
             self.__mode_3__()
 
 
-    def get_mode_info():
-        pass
+    def get_keras(self):
+        return self.keras
+
+
+    def get_mode(self):
+        return self.mode
+
+
+    def get_mode_info(self):
+
+        if self.mode == 6:
+            intro = "The final configuration {}".format(self.mode)
+        else:
+            intro = "The configuration {}".format(self.mode)
+
+        include = ""
+        
+        if self.mode == 1:
+            include = " does not include"
+        else:
+            include = " includes"
+        
+        param = ""
+
+        if self.mode == 1:
+            param = " any regularization parameters."
+        elif self.mode == 2 or self.mode == 3:
+            L = "1" if self.keras.get_L1() != None else "2"
+            param = " L{} regularization parameter.".format(L)
+        elif self.mode == 4:
+            param = " dropout regularization parameter."
+        elif self.mode == 5:
+            param = " L2 and dropout regularization parameters."
+        elif self.mode == 6:
+            param = " L2 and dropout regularization parameters."
+
+        return intro + include + param
 
 
     def get_keras(self):
@@ -83,18 +120,23 @@ class Mode:
             self.labels_2 = valid_l
         
 
-    def data_info(train, test, train_l, test_l):
-        print("INFORMATION BY DATASET")
+    def __data_info__(self):
 
-        print('Training data:', train.shape, train_l.shape)
-        print('Testing data:', test.shape, test_l.shape)
-        
-        np_labels = np.unique(train_l)
+        test_data = "Testing data" if self.mode == 6 else "Validating data:"
+
+        data_1 = 'Training data: {} {}\n'.format(self.data_1.shape, self.labels_1.shape)
+        data_2 = '{}: {} {}\n'.format(test_data, self.data_2.shape, self.labels_2.shape)
+
+        np_labels = np.unique(self.labels_1)
         len_labels = len(np_labels)
 
-        print('Labels:', np_labels)
-        print('Total labels:', len_labels)
+        description = 'Labels: {}\n'.format(np_labels)
+        number_of_labels = 'Total labels: {}\n'.format(len_labels)
 
+        return data_1 + data_2 + number_of_labels + description
+
+    def print_data_info(self):
+        print(self.__data_info__())
 
     def __mode_1__(self):
         self.keras.add_input_layer()
