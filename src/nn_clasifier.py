@@ -3,6 +3,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 
 from mode import Mode
+from output import Output
 
 
 def greeting():
@@ -31,9 +32,9 @@ def main():
     program.run_mode(256, 50, 0)
     NN = program.get_keras()
     report = NN.get_report()
-    accuracy = report['accuracy']
 
-    print(report['accuracy'], report['loss'], sep='\n')
+    output = Output(report, program)
+    output.create_report_directory()
 
 
 if __name__ == '__main__':
